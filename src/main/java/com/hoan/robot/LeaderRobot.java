@@ -10,7 +10,7 @@ import robocode.ScannedRobotEvent;
 import robocode.TeamRobot;
 import robocode.util.Utils;
 
-public class MadRobot extends TeamRobot {
+public class LeaderRobot extends TeamRobot {
 
 	//These are constants. One advantage of these is that the logic in them (such as 20-3*BULLET_POWER)
 	//does not use codespace, making them cheaper than putting the logic in the actual code.
@@ -47,15 +47,16 @@ public class MadRobot extends TeamRobot {
 			dir=-dir;
 		
 		setAhead((e.getDistance()/1.75)*dir);
-        circularTargeting(e);
+
+        if (e.getDistance() < 400)
+            circularTargeting(e);
 	}
 
     public void circularTargeting(ScannedRobotEvent e)
     {
-		
-		Graphics2D g=getGraphics();
+		Graphics2D g = getGraphics();
 
-		double absBearing=e.getBearingRadians()+getHeadingRadians();
+		double absBearing = e.getBearingRadians()+getHeadingRadians();
  
 		//Finding the heading and heading change.
 		double enemyHeading = e.getHeadingRadians();
@@ -69,7 +70,9 @@ public class MadRobot extends TeamRobot {
 		double deltaTime = 0;
 		double predictedX = getX()+e.getDistance()*Math.sin(absBearing);
 		double predictedY = getY()+e.getDistance()*Math.cos(absBearing);
-		while((++deltaTime) * BULLET_SPEED <  Point2D.Double.distance(getX(), getY(), predictedX, predictedY)) {	
+
+		while((++deltaTime) * BULLET_SPEED <  Point2D.Double.distance(getX(), getY(), predictedX, predictedY)) 
+        {
  
 			//Add the movement we think our enemy will make to our enemy's current X and Y
 			predictedX += Math.sin(enemyHeading) * e.getVelocity();
@@ -88,6 +91,7 @@ public class MadRobot extends TeamRobot {
 			predictedY=Math.max(Math.min(predictedY,getBattleFieldHeight()-18),18);
  
 		}
+
 		//Find the bearing of our predicted coordinates from us.
 		double aim = Utils.normalAbsoluteAngle(Math.atan2(  predictedX - getX(), predictedY - getY()));
  
