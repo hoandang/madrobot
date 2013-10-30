@@ -5,6 +5,14 @@ import robocode.util.Utils;
 import java.awt.geom.*;     // for Point2D's
 import java.lang.*;         // for Double and Integer objects
 import java.util.ArrayList; // for collection of waves
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+
+import robocode.HitByBulletEvent;
+import robocode.HitWallEvent;
+import robocode.ScannedRobotEvent;
+import robocode.TeamRobot;
  
 public class WaveSufferingRobot extends TeamRobot 
 {
@@ -16,6 +24,15 @@ public class WaveSufferingRobot extends TeamRobot
     public ArrayList _enemyWaves;
     public ArrayList _surfDirections;
     public ArrayList _surfAbsBearings;
+
+	final static double BULLET_POWER=3;//Our bulletpower.
+	final static double BULLET_DAMAGE=BULLET_POWER*4;//Formula for bullet damage.
+	final static double BULLET_SPEED=20-3*BULLET_POWER;//Formula for bullet speed.
+	
+	//Variables
+	static double dir=1;
+	static double oldEnemyHeading;
+	static double enemyEnergy;
  
     // We must keep track of the enemy's energy level to detect EnergyDrop,
     // indicating a bullet is fired
@@ -44,7 +61,13 @@ public class WaveSufferingRobot extends TeamRobot
         } while (true);
     }
  
-    public void onScannedRobot(ScannedRobotEvent e) {
+    public void onScannedRobot(ScannedRobotEvent e) 
+    {
+        //if is team mate hold the fire
+		if (isTeammate(e.getName())) {
+			return;
+		}
+
         _myLocation = new Point2D.Double(getX(), getY());
  
         double lateralVelocity = getVelocity()*Math.sin(e.getBearingRadians());
@@ -80,7 +103,58 @@ public class WaveSufferingRobot extends TeamRobot
         updateWaves();
         doSurfing();
  
-        // gun code would go here...
+        // Fire
+        if (e.getDistance() < 500)
+            circularTargeting (e);
+    }
+
+    public void circularTargeting(ScannedRobotEvent e)
+    {
+		Graphics2D g = getGraphics();
+
+		double absBearing = e.getBearingRadians()+getHeadingRadians();
+ 
+		//Finding the heading and heading change.
+		double enemyHeading = e.getHeadingRadians();
+		double enemyHeadingChange = enemyHeading - oldEnemyHeading;
+		oldEnemyHeading = enemyHeading;
+ 
+		/*This method of targeting is know as circular targeting; you assume your enemy will
+		 *keep moving with the same speed and turn rate that he is using at fire time.The 
+		 *base code comes from the wiki.
+		*/
+		double deltaTime = 0;
+		double predictedX = getX()+e.getDistance()*Math.sin(absBearing);
+		double predictedY = getY()+e.getDistance()*Math.cos(absBearing);
+
+		while((++deltaTime) * BULLET_SPEED <  Point2D.Double.distance(getX(), getY(), predictedX, predictedY)) 
+        {
+ 
+			//Add the movement we think our enemy will make to our enemy's current X and Y
+			predictedX += Math.sin(enemyHeading) * e.getVelocity();
+			predictedY += Math.cos(enemyHeading) * e.getVelocity();
+ 
+ 
+			//Find our enemy's heading changes.
+			enemyHeading += enemyHeadingChange;
+			
+			g.setColor(Color.red);
+			g.drawRect((int)predictedX-2,(int)predictedY-2,4,4);
+ 
+			//If our predicted coordinates are outside the walls, put them 18 distance units away from the walls as we know 
+			//that that is the closest they can get to the wall (Bots are non-rotating 36*36 squares).
+			predictedX=Math.max(Math.min(predictedX,getBattleFieldWidth()-18),18);
+			predictedY=Math.max(Math.min(predictedY,getBattleFieldHeight()-18),18);
+ 
+		}
+
+		//Find the bearing of our predicted coordinates from us.
+		double aim = Utils.normalAbsoluteAngle(Math.atan2(  predictedX - getX(), predictedY - getY()));
+ 
+		//Aim and fire.
+		setTurnGunRightRadians(Utils.normalRelativeAngle(aim - getGunHeadingRadians()));
+		setFire(BULLET_POWER);
+		setTurnRadarRightRadians(Utils.normalRelativeAngle(absBearing-getRadarHeadingRadians())*2);
     }
  
     public void updateWaves() {
