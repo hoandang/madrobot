@@ -240,33 +240,3 @@ public class SupportRobot extends TeamRobot {
         en.live = false;		
     }	
 }
-
-class Enemy {
-    /*
-     * ok, we should really be using accessors and mutators here,
-     * (i.e getName() and setName()) but life's too short.
-     */
-    String name;
-    public double bearing,heading,speed,x,y,distance,changehead;
-    public long ctime; 		//game time that the scan was produced
-    public boolean live; 	//is the enemy alive?
-    public Point2D.Double guessPosition(long when) {
-        double diff = when - ctime;
-        double newY = y + Math.cos(heading) * speed * diff;
-        double newX = x + Math.sin(heading) * speed * diff;
-
-        return new Point2D.Double(newX, newY);
-    }
-}
-
-/**Holds the x, y, and strength info of a gravity point**/
-class GravPoint {
-    public double x,y,power;
-    public GravPoint(double pX,double pY,double pPower) {
-        x = pX;
-        y = pY;
-        power = pPower;
-    }
-
-}
-

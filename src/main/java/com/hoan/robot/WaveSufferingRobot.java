@@ -5,15 +5,9 @@ import robocode.util.Utils;
 import java.awt.geom.*;     // for Point2D's
 import java.lang.*;         // for Double and Integer objects
 import java.util.ArrayList; // for collection of waves
-
 import java.awt.Color;
 import java.awt.Graphics2D;
 
-import robocode.HitByBulletEvent;
-import robocode.HitWallEvent;
-import robocode.ScannedRobotEvent;
-import robocode.TeamRobot;
- 
 public class WaveSufferingRobot extends TeamRobot 
 {
     public static int BINS = 47;
@@ -43,8 +37,7 @@ public class WaveSufferingRobot extends TeamRobot
     // If you're not familiar with WallSmoothing, the wall stick indicates
     // the amount of space we try to always have on either end of the tank
     // (extending straight out the front or back) before touching a wall.
-    public static Rectangle2D.Double _fieldRect
-        = new java.awt.geom.Rectangle2D.Double(18, 18, 764, 564);
+    public static Rectangle2D.Double _fieldRect = new java.awt.geom.Rectangle2D.Double(18, 18, 764, 564);
     public static double WALL_STICK = 160;
  
     public void run() {
@@ -52,13 +45,14 @@ public class WaveSufferingRobot extends TeamRobot
         _surfDirections = new ArrayList();
         _surfAbsBearings = new ArrayList();
  
+        // Turn radar and 
         setAdjustGunForRobotTurn(true);
         setAdjustRadarForGunTurn(true);
- 
-        do {
+
+		//set my robot colors
+        while (true)
             // basic mini-radar code
             turnRadarRightRadians(Double.POSITIVE_INFINITY);
-        } while (true);
     }
  
     public void onScannedRobot(ScannedRobotEvent e) 
@@ -330,9 +324,7 @@ public class WaveSufferingRobot extends TeamRobot
         public EnemyWave() { }
     }
  
-    // CREDIT: Iterative WallSmoothing by Kawigi
     //   - return absolute angle to move at after account for WallSmoothing
-    // robowiki.net?WallSmoothing
     public double wallSmoothing(Point2D.Double botLocation, double angle, int orientation) {
         while (!_fieldRect.contains(project(botLocation, angle, 160))) {
             angle += orientation*0.05;
@@ -340,15 +332,12 @@ public class WaveSufferingRobot extends TeamRobot
         return angle;
     }
  
-    // CREDIT: from CassiusClay, by PEZ
     //   - returns point length away from sourceLocation, at angle
-    // robowiki.net?CassiusClay
     public static Point2D.Double project(Point2D.Double sourceLocation, double angle, double length) {
         return new Point2D.Double(sourceLocation.x + Math.sin(angle) * length,
             sourceLocation.y + Math.cos(angle) * length);
     }
  
-    // got this from RaikoMicro, by Jamougha, but I think it's used by many authors
     //  - returns the absolute angle (in radians) from source to target points
     public static double absoluteBearing(Point2D.Double source, Point2D.Double target) {
         return Math.atan2(target.x - source.x, target.y - source.y);
@@ -395,7 +384,6 @@ public class WaveSufferingRobot extends TeamRobot
             //int radius = (int)(w.distanceTraveled + w.bulletVelocity);
             //hack to make waves line up visually, due to execution sequence in robocode engine
             //use this only if you advance waves in the event handlers (eg. in onScannedRobot())
-            //NB! above hack is now only necessary for robocode versions before 1.4.2
             //otherwise use: 
             int radius = (int)w.distanceTraveled;
  
