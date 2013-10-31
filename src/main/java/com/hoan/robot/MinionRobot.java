@@ -13,36 +13,40 @@ import robocode.ScannedRobotEvent;
 import robocode.TeamRobot;
 import robocode.util.Utils;
 
-public class MinionRobot extends WaveSufferingRobot {
+/**
+ * This is Minion Robot that aims to targeting the opponent in long distance if its original birth place has no 
+ * enemy nearby(using anti-gravity movement to dodge the bullet and fire weapon with minimum energy), however if it is surround by 
+ * the enemies when it starts, it would use another strategy called circular movement and circular targeting, to be simplified, 
+ * it will moves around the enemy with a particular circle and even ram it if the distance is really short
+ * @author Guangbo Chen, Hoan Dang
+ */
+public class MinionRobot extends LeaderRobot {
 
-	//These are constants. One advantage of these is that the logic in them (such as 20-3*BULLET_POWER)
-	//does not use codespace, making them cheaper than putting the logic in the actual code.
- 
-	final static double BULLET_POWER=3;//Our bulletpower.
-	final static double BULLET_DAMAGE=BULLET_POWER*4;//Formula for bullet damage.
-	final static double BULLET_SPEED=20-3*BULLET_POWER;//Formula for bullet speed.
+	//declare constant variable for circular targeting
+	private static double dir=1;
+	private static double oldEnemyHeading;
+	private final static double BULLET_DAMAGE=BULLET_POWER*4; //formula for bullet damage.
+	private final static double BULLET_SPEED=20-3*BULLET_POWER; //formula for bullet speed.
 	
-	/**
-	 * run: SnippetBot's default behavior
-	 */
-	Hashtable targets;				//all enemies are stored in the hashtable
-	Enemy target;					//our current enemy
-	final double PI = Math.PI;		//just a constant
-	int direction = 1;				//direction we are heading... 1 = forward, -1 = backwards
-	double firePower;				//the power of the shot we will be using
-	double midpointstrength = 0;	//The strength of the gravity point in the middle of the field
-	int midpointcount = 0;			//Number of turns since that strength was changed.
+	//declare variables for Anti-gravity Movement
+	private final static double bulletPower = 1;	//bullet power for anti-gra
+	private final double PI = Math.PI;
+	private Hashtable targets;	//Hashtable stores all enemies
+	private Enemy target;
+	private double midpointstrength = 0;	//The strength of the gravity point in the middle of the field
+	private int midpointcount = 0;	//Number of turns since that strength was changed.
 	
-	//Variables
-	static double dir=1;
-	static double oldEnemyHeading;
-	//static double enemyEnergy;
-
-	public void run() {
-
+	private static boolean leaderBotIsDead;
+	
+	public void run() 
+    {
+		
+		//initialize variables
+		leaderBotIsDead = false;
 		targets = new Hashtable();
 		target = new Enemy();
-		target.distance = 100000;						//initialise the distance so that we can select a target
+		//best guess for begin distance
+		target.distance = 300;
 		
 		//set my robot colors
 		setColors();
@@ -55,20 +59,50 @@ public class MinionRobot extends WaveSufferingRobot {
 			turnRadarRightRadians(Double.POSITIVE_INFINITY);
         }
     }
+	
 	/**
-	 * onScannedRobot: What to do when you see another robot
+	 * onScannedRobot: response to do what we do when see another robot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
 		
 		//if is team mate hold the fire
-		if (isTeammate(e.getName())) {
-			return;
-		}
-		
-	    double distance = e.getDistance();
-		if(distance>400)
-		{
-			
+		if (isTeammate(e.getName())) return;
+
+        // If Leader is dead then switch minion bot to leader
+        if (leaderBotIsDead)
+        {
+            // Using wave suffering to dodge enemy's bullet in a long distance
+            waveSuffering (e);
+
+            // if enemy distance is closed less than 500
+            // then apply circular targeting strategy
+            if (e.getDistance() < 500)
+                circularTargeting (e, BULLET_POWER);
+        }
+        else
+        {
+            double distance = e.getDistance();
+            if(distance > 500)
+            {
+                antiGraScanning(e); //scanning and add new enemy to the hash table
+                antiGravMove();		//move the robot by anti-gra
+                circularTargeting(e, 1);
+                execute();			//execute all commands
+            }
+            else
+            {
+                //if the distance between enemy is less than 400
+                //is not survived, using circular targeting strategy
+                setTurnRight(90+e.getBearing()-(25*dir));
+                if(Math.random() < 0.05) dir=-dir;
+                setAhead((e.getDistance()/1.75)*dir);
+                circularTargeting(e, 3);
+            }
+        }
+	}
+	
+	private void antiGraScanning(ScannedRobotEvent e)
+	{
 			Enemy en;
 			if (targets.containsKey(e.getName())) {
 				en = (Enemy)targets.get(e.getName());
@@ -76,7 +110,7 @@ public class MinionRobot extends WaveSufferingRobot {
 				en = new Enemy();
 				targets.put(e.getName(),en);
 			}
-			//the next line gets the absolute bearing to the point where the bot is
+			//gets the absolute bearing to the point where the robot is
 			double absbearing_rad = (getHeadingRadians()+e.getBearingRadians())%(2*PI);
 			//this section sets all the information about our target
 			en.name = e.getName();
@@ -94,32 +128,12 @@ public class MinionRobot extends WaveSufferingRobot {
 			if ((en.distance < target.distance)||(target.live == false)) {
 				target = en;
 			}
-			
-			antiGravMove();					//Move the bot
-			doFirePower();					//select the fire power to use
-			doScanner();					//Oscillate the scanner over the bot
-			doGun();
-			fire(firePower);
-			execute();						//execute all commands
-		}
-		else
-		{
-            //movement method
-            setTurnRight(90+e.getBearing()-(25*dir));
-            if (Math.random() < 0.05) {
-                dir=-dir;
-            }
-            setAhead((e.getDistance()/1.75)*dir);
-
-			circularTargeting(e, 3);
-		}
 	}
-
-    public void onHitByBullet(HitByBulletEvent e) {
-		//enemyEnergy-=BULLET_DAMAGE;
-	}
-    
-    //this method detects whether the robot hits the wall or hits another robot
+	
+	
+	/**
+	 * this method detects whether the robot hits the wall, particularly using by circular targeting
+	 */
     public void onHitWall(HitWallEvent e)
     {
     	//if hits the wall turn the direction opponent
@@ -127,32 +141,11 @@ public class MinionRobot extends WaveSufferingRobot {
     }
     
     
-    private void setColors() {
-		setBodyColor(Color.yellow);
-		setGunColor(Color.black);
-		setRadarColor(Color.blue);
-		setBulletColor(Color.yellow);
-		setScanColor(Color.green);
-    }
-    
     /**
      * methods for anti-gravity movement
      */
-    
-	void doFirePower() {
-		firePower = 450/target.distance;//selects a bullet power based on our distance away from the target
-		System.out.println(target.distance);
-		if (firePower > 3) {
-			firePower = 3;
-		}
-		//firePower = 0;
-	}
-	
 	void antiGravMove() {
-   		double xforce = 0;
-	    double yforce = 0;
-	    double force;
-	    double ang;
+   		double xforce = 0, yforce = 0, force, ang;
 	    GravPoint p;
 		Enemy en;
     	Enumeration e = targets.elements();
@@ -161,10 +154,10 @@ public class MinionRobot extends WaveSufferingRobot {
     	    en = (Enemy)e.nextElement();
 			if (en.live) {
 				p = new GravPoint(en.x,en.y, -1000);
-		        force = p.power/Math.pow(getRange(getX(),getY(),p.x,p.y),2);
-		        //Find the bearing from the point to us
+		        force = p.power/Math.pow(getDistance(getX(),getY(),p.x,p.y),2);
+		        //find the bearing from the point to us
 		        ang = normaliseBearing(Math.PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); 
-		        //Add the components of this force to the total force in their respective directions
+		        //add the components of this force to the total force in their respective directions
 		        xforce += Math.sin(ang) * force;
 		        yforce += Math.cos(ang) * force;
 			}
@@ -179,17 +172,17 @@ public class MinionRobot extends WaveSufferingRobot {
 			midpointstrength = (Math.random() * 2000) - 1000;
 		}
 		p = new GravPoint(getBattleFieldWidth()/2, getBattleFieldHeight()/2, midpointstrength);
-		force = p.power/Math.pow(getRange(getX(),getY(),p.x,p.y),1.5);
+		force = p.power/Math.pow(getDistance(getX(),getY(),p.x,p.y),1.5);
 	    ang = normaliseBearing(Math.PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); 
 	    xforce += Math.sin(ang) * force;
 	    yforce += Math.cos(ang) * force;
 	   
-	    /**The following four lines add wall avoidance.  They will only affect us if the bot is close 
+	    /**The following four lines add wall avoidance.  They will only affect us if the robot is close 
 	    to the walls due to the force from the walls decreasing at a power 3.**/
-	    xforce += 5000/Math.pow(getRange(getX(), getY(), getBattleFieldWidth(), getY()), 3);
-	    xforce -= 5000/Math.pow(getRange(getX(), getY(), 0, getY()), 3);
-	    yforce += 5000/Math.pow(getRange(getX(), getY(), getX(), getBattleFieldHeight()), 3);
-	    yforce -= 5000/Math.pow(getRange(getX(), getY(), getX(), 0), 3);
+	    xforce += 5000/Math.pow(getDistance(getX(), getY(), getBattleFieldWidth(), getY()), 3);
+	    xforce -= 5000/Math.pow(getDistance(getX(), getY(), 0, getY()), 3);
+	    yforce += 5000/Math.pow(getDistance(getX(), getY(), getX(), getBattleFieldHeight()), 3);
+	    yforce -= 5000/Math.pow(getDistance(getX(), getY(), getX(), 0), 3);
 	    
 	    //Move in the direction of our resolved force.
 	    goTo(getX()-xforce,getY()-yforce);
@@ -204,9 +197,10 @@ public class MinionRobot extends WaveSufferingRobot {
 	}
 
 
-	/**Turns the shortest angle possible to come to a heading, then returns the direction the
-	the bot needs to move in.**/
-	int turnTo(double angle) {
+	/**
+	 * Turns the robot heading to shortest angle and move the robot to the direction
+	 */
+	private int turnTo(double angle) {
 	    double ang;
     	int dir;
 	    ang = normaliseBearing(getHeading() - angle);
@@ -224,78 +218,64 @@ public class MinionRobot extends WaveSufferingRobot {
 	    setTurnLeft(ang);
 	    return dir;
 	}
-
-	/**keep the scanner turning**/
-	void doScanner() {
-		setTurnRadarLeftRadians(2*PI);
-//		turnRadarLeftRadians(Double.POSITIVE_INFINITY);
+	
+	/**
+	 * if a bearing is within the PI and -PI range, return the origin value
+	 */
+	private double normaliseBearing(double angle) {
+		if (angle > PI) angle -= 2*PI;
+		if (angle < -PI) angle += 2*PI;
+		return angle;
 	}
 	
-	/**Move the gun to the predicted next bearing of the enemy**/
-	void doGun() {
-		long time = getTime() + (int)Math.round((getRange(getX(),getY(),target.x,target.y)/(20-(3*firePower))));
-		Point2D.Double p = target.guessPosition(time);
-		
-		//offsets the gun by the angle to the next shot based on linear targeting provided by the enemy class
-		double gunOffset = getGunHeadingRadians() - (Math.PI/2 - Math.atan2(p.y - getY(), p.x - getX()));
-		setTurnGunLeftRadians(normaliseBearing(gunOffset));
-	}
-	
-	
-	//if a bearing is not within the -pi to pi range, alters it to provide the shortest angle
-	double normaliseBearing(double ang) {
-		if (ang > PI)
-			ang -= 2*PI;
-		if (ang < -PI)
-			ang += 2*PI;
-		return ang;
-	}
-	
-	//if a heading is not within the 0 to 2pi range, alters it to provide the shortest angle
-	double normaliseHeading(double ang) {
-		if (ang > 2*PI)
-			ang -= 2*PI;
-		if (ang < 0)
-			ang += 2*PI;
-		return ang;
-	}
-	
-	//returns the distance between two x,y coordinates
-	public double getRange( double x1,double y1, double x2,double y2 )
+	/**
+	 * gets the absolute bearing between two x and y coordinates
+	 */
+	private double absbearing( double x1,double y1, double x2,double y2 )
 	{
 		double xo = x2-x1;
 		double yo = y2-y1;
-		double h = Math.sqrt( xo*xo + yo*yo );
-		return h;	
-	}
-	
-	//gets the absolute bearing between to x,y coordinates
-	public double absbearing( double x1,double y1, double x2,double y2 )
-	{
-		double xo = x2-x1;
-		double yo = y2-y1;
-		double h = getRange( x1,y1, x2,y2 );
-		if( xo > 0 && yo > 0 )
-		{
-			return Math.asin( xo / h );
-		}
-		if( xo > 0 && yo < 0 )
-		{
-			return Math.PI - Math.asin( xo / h );
-		}
-		if( xo < 0 && yo < 0 )
-		{
-			return Math.PI + Math.asin( -xo / h );
-		}
-		if( xo < 0 && yo > 0 )
-		{
-			return 2.0*Math.PI - Math.asin( -xo / h );
-		}
+		double h = getDistance( x1,y1, x2,y2 );
+		if( xo > 0 && yo > 0 ) return Math.asin( xo / h );
+		if( xo > 0 && yo < 0 ) return Math.PI - Math.asin( xo / h );
+		if( xo < 0 && yo < 0 ) return Math.PI + Math.asin( -xo / h );
+		if( xo < 0 && yo > 0 ) return 2.0*Math.PI - Math.asin( -xo / h );
 		return 0;
 	}
-     
+	
+	/**
+	 * returns the distance between two x and y coordinates
+	 */
+	private double getDistance( double x1,double y1, double x2,double y2 )
+	{
+		double xo = x2-x1;
+		double yo = y2-y1;
+		double distance = Math.sqrt( xo*xo + yo*yo );
+		return distance;
+	}
+	
+	/**
+	 * this method detects whether robot is dead or not
+	 */
 	public void onRobotDeath(RobotDeathEvent e) {
-		Enemy en = (Enemy)targets.get(e.getName());
-		en.live = false;		
-	}	
+		
+		//update enemy life status
+		if (isTeammate(e.getName()))
+			leaderBotIsDead = true;
+		else
+		{
+			//update enemy life status
+			Enemy en = (Enemy)targets.get(e.getName());
+			en.live = false;		
+		}
+	}
+
+    private void setColors() 
+    {
+		setBodyColor(Color.yellow);
+		setGunColor(Color.black);
+		setRadarColor(Color.blue);
+		setBulletColor(Color.yellow);
+		setScanColor(Color.green);
+    }
 }
