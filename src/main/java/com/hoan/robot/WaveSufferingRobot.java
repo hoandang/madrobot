@@ -8,6 +8,11 @@ import java.util.ArrayList; // for collection of waves
 import java.awt.Color;
 import java.awt.Graphics2D;
 
+/**
+ * This is Leader Robot that aims to targeting the opponent in short distance by using circular targeting strategy 
+ * In case of long distance the leader will switch to using wave surfing movement to dodge enemy's bullet and won't fire
+ * @author Guangbo Chen, Hoan Dang
+ */
 public class WaveSufferingRobot extends TeamRobot 
 {
     public static int BINS = 47;
@@ -23,45 +28,59 @@ public class WaveSufferingRobot extends TeamRobot
 	final static double BULLET_DAMAGE=BULLET_POWER*4;//Formula for bullet damage.
 	final static double BULLET_SPEED=20-3*BULLET_POWER;//Formula for bullet speed.
 	
-	//Variables
+	// Variables
 	static double dir=1;
 	static double oldEnemyHeading;
 	static double enemyEnergy;
  
-    // We must keep track of the enemy's energy level to detect EnergyDrop,
-    // indicating a bullet is fired
+    // EnergyDrop indicating a bullet is fired
     public static double _oppEnergy = 100.0;
  
     // This is a rectangle that represents an 800x600 battle field,
-    // used for a simple, iterative WallSmoothing method (by Kawigi).
-    // If you're not familiar with WallSmoothing, the wall stick indicates
-    // the amount of space we try to always have on either end of the tank
-    // (extending straight out the front or back) before touching a wall.
     public static Rectangle2D.Double _fieldRect = new java.awt.geom.Rectangle2D.Double(18, 18, 764, 564);
+    // the wall stick indicates the amount of space we try to always have on either end of the tank
+    // (extending straight out the front or back) before touching a wall.
     public static double WALL_STICK = 160;
  
-    public void run() {
+    public void run() 
+    {
+        setColors();
         _enemyWaves = new ArrayList();
         _surfDirections = new ArrayList();
         _surfAbsBearings = new ArrayList();
  
-        // Turn radar and 
+        // Make radar and gun turn independently
         setAdjustGunForRobotTurn(true);
         setAdjustRadarForGunTurn(true);
 
-		//set my robot colors
         while (true)
-            // basic mini-radar code
+            // Quickly twist radar around
             turnRadarRightRadians(Double.POSITIVE_INFINITY);
     }
  
+	/**
+	 * onScannedRobot: response to do what we do when see another robot
+	 */
     public void onScannedRobot(ScannedRobotEvent e) 
     {
         //if is team mate hold the fire
-		if (isTeammate(e.getName())) {
+		if (isTeammate(e.getName()))
 			return;
-		}
 
+        // Using wave suffering to dodge enemy's bullet in a long distance
+        waveSuffering (e);
+
+        // if enemy distance is closed less than 500
+        // then apply circular targeting strategy
+        if (e.getDistance() < 500)
+            circularTargeting (e, BULLET_POWER);
+    }
+
+    /**
+     * 
+     */
+    public void waveSuffering(ScannedRobotEvent e)
+    {
         _myLocation = new Point2D.Double(getX(), getY());
  
         double lateralVelocity = getVelocity()*Math.sin(e.getBearingRadians());
@@ -72,7 +91,6 @@ public class WaveSufferingRobot extends TeamRobot
         _surfDirections.add(0,
             new Integer((lateralVelocity >= 0) ? 1 : -1));
         _surfAbsBearings.add(0, new Double(absBearing + Math.PI));
- 
  
         double bulletPower = _oppEnergy - e.getEnergy();
         if (bulletPower < 3.01 && bulletPower > 0.09
@@ -96,13 +114,9 @@ public class WaveSufferingRobot extends TeamRobot
  
         updateWaves();
         doSurfing();
- 
-        // Fire
-        if (e.getDistance() < 500)
-            circularTargeting (e);
     }
 
-    public void circularTargeting(ScannedRobotEvent e)
+    public void circularTargeting(ScannedRobotEvent e, double bulletPower)
     {
 		Graphics2D g = getGraphics();
 
@@ -113,9 +127,8 @@ public class WaveSufferingRobot extends TeamRobot
 		double enemyHeadingChange = enemyHeading - oldEnemyHeading;
 		oldEnemyHeading = enemyHeading;
  
-		/*This method of targeting is know as circular targeting; you assume your enemy will
-		 *keep moving with the same speed and turn rate that he is using at fire time.The 
-		 *base code comes from the wiki.
+		/* This method of targeting is know as circular targeting; you assume your enemy will
+		 * keep moving with the same speed and turn rate that he is using at fire time 
 		*/
 		double deltaTime = 0;
 		double predictedX = getX()+e.getDistance()*Math.sin(absBearing);
@@ -147,11 +160,12 @@ public class WaveSufferingRobot extends TeamRobot
  
 		//Aim and fire.
 		setTurnGunRightRadians(Utils.normalRelativeAngle(aim - getGunHeadingRadians()));
-		setFire(BULLET_POWER);
+		setFire(bulletPower);
 		setTurnRadarRightRadians(Utils.normalRelativeAngle(absBearing-getRadarHeadingRadians())*2);
     }
  
-    public void updateWaves() {
+    public void updateWaves() 
+    {
         for (int x = 0; x < _enemyWaves.size(); x++) {
             EnemyWave ew = (EnemyWave)_enemyWaves.get(x);
  
@@ -164,16 +178,19 @@ public class WaveSufferingRobot extends TeamRobot
         }
     }
  
-    public EnemyWave getClosestSurfableWave() {
+    public EnemyWave getClosestSurfableWave() 
+    {
         double closestDistance = 50000; // I juse use some very big number here
         EnemyWave surfWave = null;
  
-        for (int x = 0; x < _enemyWaves.size(); x++) {
+        for (int x = 0; x < _enemyWaves.size(); x++) 
+        {
             EnemyWave ew = (EnemyWave)_enemyWaves.get(x);
             double distance = _myLocation.distance(ew.fireLocation)
                 - ew.distanceTraveled;
  
-            if (distance > ew.bulletVelocity && distance < closestDistance) {
+            if (distance > ew.bulletVelocity && distance < closestDistance) 
+            {
                 surfWave = ew;
                 closestDistance = distance;
             }
@@ -208,6 +225,7 @@ public class WaveSufferingRobot extends TeamRobot
         }
     }
  
+    @Override
     public void onHitByBullet(HitByBulletEvent e) {
         // If the _enemyWaves collection is empty, we must have missed the
         // detection of this wave somehow.
@@ -237,9 +255,7 @@ public class WaveSufferingRobot extends TeamRobot
             }
         }
     }
- 
-    // CREDIT: mini sized predictor from Apollon, by rozu
-    // http://robowiki.net?Apollon
+
     public Point2D.Double predictPosition(EnemyWave surfWave, int direction) {
     	Point2D.Double predictedPosition = (Point2D.Double)_myLocation.clone();
     	double predictedVelocity = getVelocity();
@@ -324,34 +340,39 @@ public class WaveSufferingRobot extends TeamRobot
         public EnemyWave() { }
     }
  
-    //   - return absolute angle to move at after account for WallSmoothing
-    public double wallSmoothing(Point2D.Double botLocation, double angle, int orientation) {
-        while (!_fieldRect.contains(project(botLocation, angle, 160))) {
+    //  return absolute angle to move at after account for WallSmoothing
+    public double wallSmoothing(Point2D.Double botLocation, double angle, int orientation) 
+    {
+        while (!_fieldRect.contains(project(botLocation, angle, 160)))
             angle += orientation*0.05;
-        }
         return angle;
     }
  
     //   - returns point length away from sourceLocation, at angle
-    public static Point2D.Double project(Point2D.Double sourceLocation, double angle, double length) {
+    public static Point2D.Double project(Point2D.Double sourceLocation, double angle, double length) 
+    {
         return new Point2D.Double(sourceLocation.x + Math.sin(angle) * length,
             sourceLocation.y + Math.cos(angle) * length);
     }
  
     //  - returns the absolute angle (in radians) from source to target points
-    public static double absoluteBearing(Point2D.Double source, Point2D.Double target) {
+    public static double absoluteBearing(Point2D.Double source, Point2D.Double target) 
+    {
         return Math.atan2(target.x - source.x, target.y - source.y);
     }
  
-    public static double limit(double min, double value, double max) {
+    public static double limit(double min, double value, double max) 
+    {
         return Math.max(min, Math.min(value, max));
     }
  
-    public static double bulletVelocity(double power) {
+    public static double bulletVelocity(double power) 
+    {
         return (20D - (3D*power));
     }
  
-    public static double maxEscapeAngle(double velocity) {
+    public static double maxEscapeAngle(double velocity) 
+    {
         return Math.asin(8.0/velocity);
     }
  
@@ -374,24 +395,14 @@ public class WaveSufferingRobot extends TeamRobot
             robot.setAhead(100);
         }
     }
- 
-    public void onPaint(java.awt.Graphics2D g) {
-         g.setColor(java.awt.Color.red);
-         for(int i = 0; i < _enemyWaves.size(); i++){
-            EnemyWave w = (EnemyWave)(_enemyWaves.get(i));
-            Point2D.Double center = w.fireLocation;
- 
-            //int radius = (int)(w.distanceTraveled + w.bulletVelocity);
-            //hack to make waves line up visually, due to execution sequence in robocode engine
-            //use this only if you advance waves in the event handlers (eg. in onScannedRobot())
-            //otherwise use: 
-            int radius = (int)w.distanceTraveled;
- 
-            //Point2D.Double center = w.fireLocation;
-            if(radius - 40 < center.distance(_myLocation))
-               g.drawOval((int)(center.x - radius ), (int)(center.y - radius), radius*2, radius*2);
-         }
+
+    private void setColors() 
+    {
+		setBodyColor(Color.yellow);
+		setGunColor(Color.black);
+		setRadarColor(Color.blue);
+		setBulletColor(Color.yellow);
+		setScanColor(Color.green);
     }
- 
 }
 

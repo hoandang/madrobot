@@ -13,7 +13,7 @@ import robocode.ScannedRobotEvent;
 import robocode.TeamRobot;
 import robocode.util.Utils;
 
-public class MinionRobot extends TeamRobot {
+public class MinionRobot extends WaveSufferingRobot {
 
 	//These are constants. One advantage of these is that the logic in them (such as 20-3*BULLET_POWER)
 	//does not use codespace, making them cheaper than putting the logic in the actual code.
@@ -37,9 +37,9 @@ public class MinionRobot extends TeamRobot {
 	static double dir=1;
 	static double oldEnemyHeading;
 	//static double enemyEnergy;
-	
+
 	public void run() {
-		
+
 		targets = new Hashtable();
 		target = new Enemy();
 		target.distance = 100000;						//initialise the distance so that we can select a target
@@ -104,73 +104,17 @@ public class MinionRobot extends TeamRobot {
 		}
 		else
 		{
-			CicularTargeting(e);
-		}
-	    
-		
-	}
-	
-	public void CicularTargeting(ScannedRobotEvent e)
-	{
-		
-		//movement method
-		setTurnRight(90+e.getBearing()-(25*dir));
-		if (Math.random() < 0.05) {
-			dir=-dir;
-		}
-		setAhead((e.getDistance()/1.75)*dir);
-		
-		
-		
-		Graphics2D g=getGraphics();
+            //movement method
+            setTurnRight(90+e.getBearing()-(25*dir));
+            if (Math.random() < 0.05) {
+                dir=-dir;
+            }
+            setAhead((e.getDistance()/1.75)*dir);
 
-		double absBearing=e.getBearingRadians()+getHeadingRadians();
- 
- 
-		/*This method of targeting is know as circular targeting; you assume your enemy will
-		 *keep moving with the same speed and turn rate that he is using at fire time.The 
-		 *base code comes from the wiki.
-		*/
-		
-		//Finding the heading and heading change.
-		double enemyHeading = e.getHeadingRadians();
-		double enemyHeadingChange = enemyHeading - oldEnemyHeading;
-		oldEnemyHeading = enemyHeading;
- 
-		//predict enemy's movement
-		double deltaTime = 0;
-		double predictedX = getX()+e.getDistance()*Math.sin(absBearing);
-		double predictedY = getY()+e.getDistance()*Math.cos(absBearing);
-		while((++deltaTime) * BULLET_SPEED <  Point2D.Double.distance(getX(), getY(), predictedX, predictedY)){	
- 
-			//Add the movement we think our enemy will make to our enemy's current X and Y
-			predictedX += Math.sin(enemyHeading) * e.getVelocity();
-			predictedY += Math.cos(enemyHeading) * e.getVelocity();
- 
- 
-			//Find our enemy's heading changes.
-			enemyHeading += enemyHeadingChange;
-			
-			g.setColor(Color.red);
-			g.drawRect((int)predictedX-2,(int)predictedY-2,4,4);
- 
-			//If our predicted coordinates are outside the walls, put them 18 distance units away from the walls as we know 
-			//that that is the closest they can get to the wall
-			predictedX=Math.max(Math.min(predictedX,getBattleFieldWidth()-18),18);
-			predictedY=Math.max(Math.min(predictedY,getBattleFieldHeight()-18),18);
- 
+			circularTargeting(e, 3);
 		}
-		//Find the bearing of our predicted coordinates from us.
-		double aim = Utils.normalAbsoluteAngle(Math.atan2(  predictedX - getX(), predictedY - getY()));
- 
-		//Aim and fire.
-		setTurnGunRightRadians(Utils.normalRelativeAngle(aim - getGunHeadingRadians()));
-		setFire(BULLET_POWER);
- 
-		setTurnRadarRightRadians(Utils.normalRelativeAngle(absBearing-getRadarHeadingRadians())*2);
 	}
- 
-    
+
     public void onHitByBullet(HitByBulletEvent e) {
 		//enemyEnergy-=BULLET_DAMAGE;
 	}
@@ -190,7 +134,6 @@ public class MinionRobot extends TeamRobot {
 		setBulletColor(Color.yellow);
 		setScanColor(Color.green);
     }
-    
     
     /**
      * methods for anti-gravity movement
