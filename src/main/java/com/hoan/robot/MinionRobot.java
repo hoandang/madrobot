@@ -22,51 +22,51 @@ import robocode.util.Utils;
  */
 public class MinionRobot extends LeaderRobot {
 
-	//declare constant variable for circular targeting
-	private static double dir=1;
-	private static double oldEnemyHeading;
-	private final static double BULLET_DAMAGE=BULLET_POWER*4; //formula for bullet damage.
-	private final static double BULLET_SPEED=20-3*BULLET_POWER; //formula for bullet speed.
-	
-	//declare variables for Anti-gravity Movement
-	private final static double bulletPower = 1;	//bullet power for anti-gra
-	private final double PI = Math.PI;
-	private Hashtable targets;	//Hashtable stores all enemies
-	private Enemy target;
-	private double midpointstrength = 0;	//The strength of the gravity point in the middle of the field
-	private int midpointcount = 0;	//Number of turns since that strength was changed.
-	
-	private static boolean leaderBotIsDead;
-	
-	public void run() 
+    //declare constant variable for circular targeting
+    private static double dir=1;
+    private static double oldEnemyHeading;
+    private final static double BULLET_DAMAGE=BULLET_POWER*4; //formula for bullet damage.
+    private final static double BULLET_SPEED=20-3*BULLET_POWER; //formula for bullet speed.
+
+    //declare variables for Anti-gravity Movement
+    private final static double bulletPower = 1;//bullet power for anti-gra
+    private final double PI = Math.PI;
+    private Hashtable targets;//Hashtable stores all enemies
+    private Enemy target;
+    private double midpointstrength = 0;//The strength of the gravity point in the middle of the field
+    private int midpointcount = 0;//Number of turns since that strength was changed.
+
+    private static boolean leaderBotIsDead;
+
+    public void run() 
     {
-		
-		//initialize variables
-		leaderBotIsDead = false;
-		targets = new Hashtable();
-		target = new Enemy();
-		//best guess for begin distance
-		target.distance = 300;
-		
-		//set my robot colors
-		setColors();
-		
-		//Sets the gun and radar to turn independent from the robot's turn.
-		setAdjustGunForRobotTurn(true);
-		setAdjustRadarForGunTurn(true);
-		
+
+        //initialize variables
+        leaderBotIsDead = false;
+        targets = new Hashtable();
+        target = new Enemy();
+        //best guess for begin distance
+        target.distance = 300;
+
+        //set my robot colors
+        setColors();
+
+        //Sets the gun and radar to turn independent from the robot's turn.
+        setAdjustGunForRobotTurn(true);
+        setAdjustRadarForGunTurn(true);
+
         while (true) {
-			turnRadarRightRadians(Double.POSITIVE_INFINITY);
+            turnRadarRightRadians(Double.POSITIVE_INFINITY);
         }
     }
-	
-	/**
-	 * onScannedRobot: response to do what we do when see another robot
-	 */
-	public void onScannedRobot(ScannedRobotEvent e) {
-		
-		//if is team mate hold the fire
-		if (isTeammate(e.getName())) return;
+
+    /**
+     * onScannedRobot: response to do what we do when see another robot
+     */
+    public void onScannedRobot(ScannedRobotEvent e) {
+
+        //if is team mate hold the fire
+        if (isTeammate(e.getName())) return;
 
         // If Leader is dead then switch minion bot to leader
         if (leaderBotIsDead)
@@ -85,9 +85,9 @@ public class MinionRobot extends LeaderRobot {
             if(distance > 500)
             {
                 antiGraScanning(e); //scanning and add new enemy to the hash table
-                antiGravMove();		//move the robot by anti-gra
+                antiGravMove();//move the robot by anti-gra
                 circularTargeting(e, 1);
-                execute();			//execute all commands
+                execute();//execute all commands
             }
             else
             {
@@ -99,183 +99,183 @@ public class MinionRobot extends LeaderRobot {
                 circularTargeting(e, 3);
             }
         }
-	}
-	
-	private void antiGraScanning(ScannedRobotEvent e)
-	{
-			Enemy en;
-			if (targets.containsKey(e.getName())) {
-				en = (Enemy)targets.get(e.getName());
-			} else {
-				en = new Enemy();
-				targets.put(e.getName(),en);
-			}
-			//gets the absolute bearing to the point where the robot is
-			double absbearing_rad = (getHeadingRadians()+e.getBearingRadians())%(2*PI);
-			//this section sets all the information about our target
-			en.name = e.getName();
-			double h = normaliseBearing(e.getHeadingRadians() - en.heading);
-			h = h/(getTime() - en.ctime);
-			en.changehead = h;
-			en.x = getX()+Math.sin(absbearing_rad)*e.getDistance(); //works out the x coordinate of where the target is
-			en.y = getY()+Math.cos(absbearing_rad)*e.getDistance(); //works out the y coordinate of where the target is
-			en.bearing = e.getBearingRadians();
-			en.heading = e.getHeadingRadians();
-			en.ctime = getTime();				//game time at which this scan was produced
-			en.speed = e.getVelocity();
-			en.distance = e.getDistance();	
-			en.live = true;
-			if ((en.distance < target.distance)||(target.live == false)) {
-				target = en;
-			}
-	}
-	
-	
-	/**
-	 * this method detects whether the robot hits the wall, particularly using by circular targeting
-	 */
+    }
+
+    private void antiGraScanning(ScannedRobotEvent e)
+    {
+        Enemy en;
+        if (targets.containsKey(e.getName())) {
+            en = (Enemy)targets.get(e.getName());
+        } else {
+            en = new Enemy();
+            targets.put(e.getName(),en);
+        }
+        //gets the absolute bearing to the point where the robot is
+        double absbearing_rad = (getHeadingRadians()+e.getBearingRadians())%(2*PI);
+        //this section sets all the information about our target
+        en.name = e.getName();
+        double h = normaliseBearing(e.getHeadingRadians() - en.heading);
+        h = h/(getTime() - en.ctime);
+        en.changehead = h;
+        en.x = getX()+Math.sin(absbearing_rad)*e.getDistance(); //works out the x coordinate of where the target is
+        en.y = getY()+Math.cos(absbearing_rad)*e.getDistance(); //works out the y coordinate of where the target is
+        en.bearing = e.getBearingRadians();
+        en.heading = e.getHeadingRadians();
+        en.ctime = getTime();//game time at which this scan was produced
+        en.speed = e.getVelocity();
+        en.distance = e.getDistance();
+        en.live = true;
+        if ((en.distance < target.distance)||(target.live == false)) {
+            target = en;
+        }
+    }
+
+
+    /**
+     * this method detects whether the robot hits the wall, particularly using by circular targeting
+     */
     public void onHitWall(HitWallEvent e)
     {
-    	//if hits the wall turn the direction opponent
-		dir=-dir;
+        //if hits the wall turn the direction opponent
+        dir=-dir;
     }
-    
-    
+
+
     /**
      * methods for anti-gravity movement
      */
-	void antiGravMove() {
-   		double xforce = 0, yforce = 0, force, ang;
-	    GravPoint p;
-		Enemy en;
-    	Enumeration e = targets.elements();
-	    //cycle through all the enemies.  If they are alive, they are repulsive.  Calculate the force on us
-		while (e.hasMoreElements()) {
-    	    en = (Enemy)e.nextElement();
-			if (en.live) {
-				p = new GravPoint(en.x,en.y, -1000);
-		        force = p.power/Math.pow(getDistance(getX(),getY(),p.x,p.y),2);
-		        //find the bearing from the point to us
-		        ang = normaliseBearing(Math.PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); 
-		        //add the components of this force to the total force in their respective directions
-		        xforce += Math.sin(ang) * force;
-		        yforce += Math.cos(ang) * force;
-			}
-	    }
-	    
-		/**The next section adds a middle point with a random (positive or negative) strength.
-		The strength changes every 5 turns, and goes between -1000 and 1000.  This gives a better
-		overall movement.**/
-		midpointcount++;
-		if (midpointcount > 5) {
-			midpointcount = 0;
-			midpointstrength = (Math.random() * 2000) - 1000;
-		}
-		p = new GravPoint(getBattleFieldWidth()/2, getBattleFieldHeight()/2, midpointstrength);
-		force = p.power/Math.pow(getDistance(getX(),getY(),p.x,p.y),1.5);
-	    ang = normaliseBearing(Math.PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); 
-	    xforce += Math.sin(ang) * force;
-	    yforce += Math.cos(ang) * force;
-	   
-	    /**The following four lines add wall avoidance.  They will only affect us if the robot is close 
-	    to the walls due to the force from the walls decreasing at a power 3.**/
-	    xforce += 5000/Math.pow(getDistance(getX(), getY(), getBattleFieldWidth(), getY()), 3);
-	    xforce -= 5000/Math.pow(getDistance(getX(), getY(), 0, getY()), 3);
-	    yforce += 5000/Math.pow(getDistance(getX(), getY(), getX(), getBattleFieldHeight()), 3);
-	    yforce -= 5000/Math.pow(getDistance(getX(), getY(), getX(), 0), 3);
-	    
-	    //Move in the direction of our resolved force.
-	    goTo(getX()-xforce,getY()-yforce);
-	}
-	
-	/**Move towards an x and y coordinate**/
-	void goTo(double x, double y) {
-	    double dist = 20; 
-	    double angle = Math.toDegrees(absbearing(getX(),getY(),x,y));
-	    double r = turnTo(angle);
-	    setAhead(dist * r);
-	}
+    void antiGravMove() {
+        double xforce = 0, yforce = 0, force, ang;
+        GravPoint p;
+        Enemy en;
+        Enumeration e = targets.elements();
+        //cycle through all the enemies.  If they are alive, they are repulsive.  Calculate the force on us
+        while (e.hasMoreElements()) {
+            en = (Enemy)e.nextElement();
+            if (en.live) {
+                p = new GravPoint(en.x,en.y, -1000);
+                force = p.power/Math.pow(getDistance(getX(),getY(),p.x,p.y),2);
+                //find the bearing from the point to us
+                ang = normaliseBearing(Math.PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); 
+                //add the components of this force to the total force in their respective directions
+                xforce += Math.sin(ang) * force;
+                yforce += Math.cos(ang) * force;
+            }
+        }
+
+        /**The next section adds a middle point with a random (positive or negative) strength.
+          The strength changes every 5 turns, and goes between -1000 and 1000.  This gives a better
+          overall movement.**/
+        midpointcount++;
+        if (midpointcount > 5) {
+            midpointcount = 0;
+            midpointstrength = (Math.random() * 2000) - 1000;
+        }
+        p = new GravPoint(getBattleFieldWidth()/2, getBattleFieldHeight()/2, midpointstrength);
+        force = p.power/Math.pow(getDistance(getX(),getY(),p.x,p.y),1.5);
+        ang = normaliseBearing(Math.PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); 
+        xforce += Math.sin(ang) * force;
+        yforce += Math.cos(ang) * force;
+
+        /**The following four lines add wall avoidance.  They will only affect us if the robot is close 
+          to the walls due to the force from the walls decreasing at a power 3.**/
+        xforce += 5000/Math.pow(getDistance(getX(), getY(), getBattleFieldWidth(), getY()), 3);
+        xforce -= 5000/Math.pow(getDistance(getX(), getY(), 0, getY()), 3);
+        yforce += 5000/Math.pow(getDistance(getX(), getY(), getX(), getBattleFieldHeight()), 3);
+        yforce -= 5000/Math.pow(getDistance(getX(), getY(), getX(), 0), 3);
+
+        //Move in the direction of our resolved force.
+        goTo(getX()-xforce,getY()-yforce);
+    }
+
+    /**Move towards an x and y coordinate**/
+    void goTo(double x, double y) {
+        double dist = 20; 
+        double angle = Math.toDegrees(absbearing(getX(),getY(),x,y));
+        double r = turnTo(angle);
+        setAhead(dist * r);
+    }
 
 
-	/**
-	 * Turns the robot heading to shortest angle and move the robot to the direction
-	 */
-	private int turnTo(double angle) {
-	    double ang;
-    	int dir;
-	    ang = normaliseBearing(getHeading() - angle);
-	    if (ang > 90) {
-	        ang -= 180;
-	        dir = -1;
-	    }
-	    else if (ang < -90) {
-	        ang += 180;
-	        dir = -1;
-	    }
-	    else {
-	        dir = 1;
-	    }
-	    setTurnLeft(ang);
-	    return dir;
-	}
-	
-	/**
-	 * if a bearing is within the PI and -PI range, return the origin value
-	 */
-	private double normaliseBearing(double angle) {
-		if (angle > PI) angle -= 2*PI;
-		if (angle < -PI) angle += 2*PI;
-		return angle;
-	}
-	
-	/**
-	 * gets the absolute bearing between two x and y coordinates
-	 */
-	private double absbearing( double x1,double y1, double x2,double y2 )
-	{
-		double xo = x2-x1;
-		double yo = y2-y1;
-		double h = getDistance( x1,y1, x2,y2 );
-		if( xo > 0 && yo > 0 ) return Math.asin( xo / h );
-		if( xo > 0 && yo < 0 ) return Math.PI - Math.asin( xo / h );
-		if( xo < 0 && yo < 0 ) return Math.PI + Math.asin( -xo / h );
-		if( xo < 0 && yo > 0 ) return 2.0*Math.PI - Math.asin( -xo / h );
-		return 0;
-	}
-	
-	/**
-	 * returns the distance between two x and y coordinates
-	 */
-	private double getDistance( double x1,double y1, double x2,double y2 )
-	{
-		double xo = x2-x1;
-		double yo = y2-y1;
-		double distance = Math.sqrt( xo*xo + yo*yo );
-		return distance;
-	}
-	
-	/**
-	 * this method detects whether robot is dead or not
-	 */
-	public void onRobotDeath(RobotDeathEvent e) {
-		
-		//update enemy life status
-		if (isTeammate(e.getName()))
-			leaderBotIsDead = true;
-		else
-		{
-			//update enemy life status
-			Enemy en = (Enemy)targets.get(e.getName());
-			en.live = false;		
-		}
-	}
+    /**
+     * Turns the robot heading to shortest angle and move the robot to the direction
+     */
+    private int turnTo(double angle) {
+        double ang;
+        int dir;
+        ang = normaliseBearing(getHeading() - angle);
+        if (ang > 90) {
+            ang -= 180;
+            dir = -1;
+        }
+        else if (ang < -90) {
+            ang += 180;
+            dir = -1;
+        }
+        else {
+            dir = 1;
+        }
+        setTurnLeft(ang);
+        return dir;
+    }
+
+    /**
+     * if a bearing is within the PI and -PI range, return the origin value
+     */
+    private double normaliseBearing(double angle) {
+        if (angle > PI) angle -= 2*PI;
+        if (angle < -PI) angle += 2*PI;
+        return angle;
+    }
+
+    /**
+     * gets the absolute bearing between two x and y coordinates
+     */
+    private double absbearing( double x1,double y1, double x2,double y2 )
+    {
+        double xo = x2-x1;
+        double yo = y2-y1;
+        double h = getDistance( x1,y1, x2,y2 );
+        if( xo > 0 && yo > 0 ) return Math.asin( xo / h );
+        if( xo > 0 && yo < 0 ) return Math.PI - Math.asin( xo / h );
+        if( xo < 0 && yo < 0 ) return Math.PI + Math.asin( -xo / h );
+        if( xo < 0 && yo > 0 ) return 2.0*Math.PI - Math.asin( -xo / h );
+        return 0;
+    }
+
+    /**
+     * returns the distance between two x and y coordinates
+     */
+    private double getDistance( double x1,double y1, double x2,double y2 )
+    {
+        double xo = x2-x1;
+        double yo = y2-y1;
+        double distance = Math.sqrt( xo*xo + yo*yo );
+        return distance;
+    }
+
+    /**
+     * this method detects whether robot is dead or not
+     */
+    public void onRobotDeath(RobotDeathEvent e) {
+
+        //update enemy life status
+        if (isTeammate(e.getName()))
+            leaderBotIsDead = true;
+        else
+        {
+            //update enemy life status
+            Enemy en = (Enemy)targets.get(e.getName());
+            en.live = false;
+        }
+    }
 
     private void setColors() 
     {
-		setBodyColor(Color.yellow);
-		setGunColor(Color.black);
-		setRadarColor(Color.blue);
-		setBulletColor(Color.yellow);
-		setScanColor(Color.green);
+        setBodyColor(Color.yellow);
+        setGunColor(Color.black);
+        setRadarColor(Color.blue);
+        setBulletColor(Color.yellow);
+        setScanColor(Color.green);
     }
 }
