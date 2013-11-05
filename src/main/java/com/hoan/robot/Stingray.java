@@ -10,17 +10,17 @@ public class Stingray extends TeamRobot {
 
     public void run() {
         setAdjustRadarForGunTurn(true);
-	    setAdjustGunForRobotTurn(true);
-	    setAdjustRadarForRobotTurn(true);
-		target = new Enemy();
+        setAdjustGunForRobotTurn(true);
+        setAdjustRadarForRobotTurn(true);
+        target = new Enemy();
         target.distance = 100000;               // initialise the distance so that we can select a target
         setColors(Color.black, Color.yellow, Color.yellow); // (robot, gun, radar)
-		setMaxVelocity(8);
-		setAhead(10000 * direction);
+        setMaxVelocity(8);
+        setAhead(10000 * direction);
         // turns of the robot, gun and radar are independent
         turnRadarRightRadians(2 * Math.PI);          //turns the radar right around to get a view of the field
         while(true) {
-			
+
             doMovement();                 
             doFirePower();             
             doScanner();                 
@@ -45,7 +45,7 @@ public class Stingray extends TeamRobot {
 
     void doMovement() {
         // set direcion to move in
-		if (target.distance < 200) {
+        if (target.distance < 200) {
             setTurnRightRadians(target.bearing + (Math.PI/2) + (direction * 1)); // move away from target if too close
         } else if (target.distance > 400) {
             setTurnRightRadians(target.bearing + (Math.PI/2) - (direction * 1)); // move in on target if too far away
@@ -55,9 +55,9 @@ public class Stingray extends TeamRobot {
 
         // normal movement: switch directions if we've stopped
         if (getVelocity() == 0) {
-           direction *= -1;
-			setTurnRightRadians(Math.PI /2);
-			setAhead(Double.POSITIVE_INFINITY);
+            direction *= -1;
+            setTurnRightRadians(Math.PI /2);
+            setAhead(Double.POSITIVE_INFINITY);
         }
 
     }
@@ -65,7 +65,7 @@ public class Stingray extends TeamRobot {
     void doScanner() {
         double radarOffset;
         if (getTime() - target.ctime > 4) {     // if we haven't seen anybody for a bit....
-                radarOffset = 360;              // rotate the radar to find a target
+            radarOffset = 360;              // rotate the radar to find a target
         } else {
             // next is the amount we need to rotate the radar by to scan where the target is now
             radarOffset = getRadarHeadingRadians() - absbearing(getX(), getY() ,target.x, target.y);
@@ -90,17 +90,17 @@ public class Stingray extends TeamRobot {
         double gunOffset = getGunHeadingRadians() - absbearing(getX(), getY(), target.guessX(time), target.guessY(time));
         setTurnGunLeftRadians(normaliseBearing(gunOffset));
     }
-   
+
     public void onScannedRobot(ScannedRobotEvent e) {
 
-		
-		if (isTeammate(e.getName())) {				//check if the scanned bot is friendly
-			direction *= -1;					//prevent bot radar from locking onto an ally
-			setAhead(Double.POSITIVE_INFINITY);
-			turnRadarRightRadians(Math.PI/2);
-			return;									//don't fire if ally
-		}
-		
+
+        if (isTeammate(e.getName())) {//check if the scanned bot is friendly
+            direction *= -1;//prevent bot radar from locking onto an ally
+            setAhead(Double.POSITIVE_INFINITY);
+            turnRadarRightRadians(Math.PI/2);
+            return;//don't fire if ally
+        }
+
         if ((e.getDistance() < target.distance) || (target.name == e.getName())) {
             // the next line gets the absolute bearing to the point where the bot is
             double absbearing_rad = (getHeadingRadians() + e.getBearingRadians()) % (2 * Math.PI);
@@ -125,20 +125,20 @@ public class Stingray extends TeamRobot {
 
     public void onHitRobot(HitRobotEvent e) {
         setTurnRightRadians(Math.PI /2);
-		setAhead(Double.POSITIVE_INFINITY);
+        setAhead(Double.POSITIVE_INFINITY);
     }
 
     public void onHitWall(HitWallEvent e) {
         direction *= -1;
-		setTurnRightRadians(Math.PI /2);
-		setAhead(Double.POSITIVE_INFINITY);
+        setTurnRightRadians(Math.PI /2);
+        setAhead(Double.POSITIVE_INFINITY);
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
         direction *= -1;
     }
 
-	//Helper stuff
+    //Helper stuff
     class Enemy {
         String name;
         public double bearing;
@@ -170,7 +170,7 @@ public class Stingray extends TeamRobot {
     }
 
     // if a heading is not within the 0 to 2Math.PI range, alters it to provide the shortest angle
-  
+
 
     // returns the distance between two x,y coordinates
     public double getRange(double x1, double y1, double x2,double y2) {
